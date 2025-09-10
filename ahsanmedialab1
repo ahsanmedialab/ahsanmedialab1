@@ -1,0 +1,59 @@
+from flask import Flask, request, jsonify
+import requests
+import os
+
+app = Flask(__name__)
+
+OPENAI_API_KEY = "your_openai_api_key"
+REPLICATE_API_KEY = "your_replicate_api_key"
+ELEVENLABS_API_KEY = "your_elevenlabs_api_key"
+@app.route("/generate-image", methods=["GET"])
+def generate_image():
+    prompt = request.args.get("prompt")
+
+    url = "https://api.openai.com/v1/images/generations"
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+    data = {"model": "gpt-image-1", "prompt": prompt, "size": "512x512"}
+
+    response = requests.post(url, headers=headers, json=data)
+    result = response.json()
+
+    return jsonify({"result": result["data"][0]["url"]})
+@app.route("/generate-video", methods=["GET"])
+def generate_video():
+    prompt = request.args.get("prompt")
+
+    url = "https://api.replicate.com/v1/predictions"
+    headers = {"Authorization": f"Token {REPLICATE_API_KEY}", "Content-Type": "application/json"}
+    data = {
+        "version": "8e0e4e...your-model-version-id...",  # Replicate model version
+        "input": {"prompt": prompt}
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    result = response.json()
+
+    return jsonify({"result": result})
+@app.route("/generate-voice", methods=["GET"])
+def generate_voice():
+    text = request.args.get("text")
+
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
+    headers = {
+        "Accept": "audio/mpeg",
+        "Content-Type": "application/json",
+        "xi-api-key": ELEVENLABS_API_KEY
+    }
+    data = {"text": text, "voice_settings": {"stability": 0.75, "similarity_boost": 0.75}}
+
+    response = requests.post(url, headers=headers, json=data)
+
+    # Save audio file
+    with open("output.mp3", "wb") as f:
+        f.write(response.content)
+
+    return jsonify({"result": "Voice generated! Saved as output.mp3"})
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
